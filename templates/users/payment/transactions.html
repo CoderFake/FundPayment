@@ -1,0 +1,247 @@
+{% extends 'layouts/base-fullscreen.html' %}
+{% block title %}DANH SÁCH ĐÓNG QUỸ{% endblock %}
+{% load static fund_filters %}
+{% block extrastyle %}
+    <style>
+        body {
+            height: 100vh !important;
+        }
+
+        .z-index-0 {
+            z-index: 0 !important;
+        }
+
+        .z-index-1 {
+            z-index: 1;
+        }
+
+        .z-index-2 {
+            z-index: 2;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 3px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #2d2d2d;
+        }
+
+        .table-bordered tbody tr:last-child td {
+            border-left: 1px solid #dee2e6 !important;
+            border-right: 1px solid #dee2e6 !important;
+        }
+
+        .table thead th {
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+
+        .position-sticky.left-0::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -5px;
+            height: 100%;
+            width: 5px;
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+        }
+
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 2;
+        }
+
+
+        .table thead th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 4 !important;
+        }
+
+        .table tbody td:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 0;
+        }
+
+        .form-select {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.4rem;
+            color: #495057;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid #d2d6da;
+            appearance: none;
+            border-radius: 0.5rem;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .form-select:focus {
+            border-color: #5e72e4;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25);
+        }
+    </style>
+{% endblock extrastyle %}
+
+{% block content %}
+    {% include 'includes/navigation-fullscreen.html' %}
+    <main class="main-content pt-8 mx-3">
+        <section>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 p-0">
+                        <div class="card shadow">
+                            <div class="container-fluid p-0">
+                                <div class="card-header pb-0 position-sticky top-0 bg-white z-index-2">
+                                    <div class="d-flex justify-content-between align-items-center flex-column flex-md-row">
+                                        <h4>Lịch sử giao dịch</h4>
+                                        <div class="form-group mb-0 pl-2 pr-2" style="min-width: 300px;">
+                                            <h4 class="text-center">Số dư: <b
+                                                    class="text-info">{{ balance|format_price }}</b> VNĐ</h4>
+                                        </div>
+                                    </div>
+
+                                    <!-- Filter Form -->
+                                    <form id="filterForm" method="post" class="mt-3" action="{% url 'transaction' %}">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <div class="form-group">
+                                                    <label class="form-control-label">Thành viên</label>
+                                                    <select name="username" class="form-select" id="usernameSelect">
+                                                        <option value="all">Tất cả</option>
+                                                        <option value="anonymous" {% if selected_username == "anonymous" %}selected{% endif %}>
+                                                            Thành viên ngoài {{ BUSINESS_UNIT }}
+                                                        </option>
+                                                        {% for account in accounts %}
+                                                            <option value="{{ account.username }}"
+                                                                    {% if account.username == selected_username %}selected{% endif %}>
+                                                                {{ account.name|default:account.username }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="form-group">
+                                                    <label class="form-control-label">Loại giao dịch</label>
+                                                    <select name="type" class="form-select" id="typeSelect">
+                                                        <option value="all">Tất cả</option>
+                                                        {% for type_value, type_label in payment_types %}
+                                                            <option value="{{ type_value }}"
+                                                                    {% if type_value == selected_type %}selected{% endif %}>
+                                                                {{ type_label }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end">
+                                                <button type="button" class="btn btn-secondary w-100" id="resetBtn">
+                                                    <i class="fas fa-redo"></i> Reset
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="card-body px-0 pt-0 pb-2 mt-3 mb-3">
+                                    <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                                        <table class="table align-items-center mb-0 table-bordered border">
+                                            <thead class="position-sticky top-0 bg-white z-index-1">
+                                            <tr>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">
+                                                    Thành viên
+                                                </th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">
+                                                    Loại
+                                                </th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">
+                                                    Số tiền
+                                                </th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">
+                                                    Mô tả
+                                                </th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder">
+                                                    Ngày tạo
+                                                </th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for tx in transactions %}
+                                                <tr style="{% cycle 'background: white' 'background: #f9f9f9' %}">
+                                                    <td class="text-sm font-weight-bold" style="position: sticky; left: 0; {% cycle 'background: white' 'background: #f9f9f9' %}; z-index: 0;">
+                                                        {% if tx.account %}
+                                                            {{ tx.account.name|default:tx.account.username }}
+                                                        {% else %}
+                                                            Thành viên ngoài {{ BUSINESS_UNIT }}
+                                                        {% endif %}
+                                                    </td>
+                                                    {% if tx.type != "activities_payment" %}
+                                                        <td class="text-sm">{{ tx.get_type_display }}</td>
+                                                        <td class="text-success font-weight-bold text-sm">&plus;{{ tx.amount|format_price }} VNĐ</td>
+                                                    {% else %}
+                                                        <td class="text-sm">{{ tx.get_type_display }}</td>
+                                                        <td class="text-danger font-weight-bold text-sm">&minus;{{ tx.amount|format_price }} VNĐ</td>
+                                                    {% endif %}
+
+                                                    <td class="text-sm">{{ tx.description }}</td>
+                                                    <td class="text-sm">{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-sm">Không có dữ liệu</td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock content %}
+
+
+{% block extrascript %}
+    <script>
+        $(document).ready(function () {
+            $('#usernameSelect, #typeSelect').change(function () {
+                $(this).closest('form').submit();
+            });
+
+            $('#resetBtn').click(function () {
+                window.location.href = "{% url 'transaction' %}?username=all&type=all";
+            });
+
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND'
+                }).format(amount);
+            }
+        });
+    </script>
+{% endblock extrascript %}

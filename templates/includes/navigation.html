@@ -1,0 +1,53 @@
+{% load static %}
+<!-- Navbar -->
+<nav class="navbar navbar-main navbar-expand-lg px-0 mx-4 border-radius-xl position-sticky blur shadow-blur my-3 left-auto top-1 z-index-sticky"
+     id="navbarBlur" navbar-scroll="true">
+    <div class="container-fluid py-1 px-3">
+        <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4 d-flex justify-content-end" id="navbar">
+            <ul class="navbar-nav justify-content-end">
+                {% if request.user.is_authenticated %}
+                    <li class="nav-item d-flex align-items-center">
+
+                        {% if request.user.is_superuser %}
+                            <a href="{% url 'logout' %}" class="nav-link text-body font-weight-bold px-0">
+                        {% else %}
+                            <a href="{% url 'logout' %}" class="nav-link text-body font-weight-bold px-0">
+                        {% endif %}
+
+                        <i class="fa fa-user me-sm-1"></i>
+                        <span class="d-sm-inline d-none me-3">Đăng xuất</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="nav-item d-flex align-items-center">
+                        <a href="{% url 'login' %}" class="nav-link text-body font-weight-bold px-0">
+                            <i class="fa fa-user me-sm-1"></i>
+                            <span class="d-sm-inline d-none me-3">Đăng nhập</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                <li class="nav-item d-flex justify-content-center justify-content-lg-end align-items-center">
+                    {% if request.user.is_superuser %}
+                        <a href="{% url 'admin:password_change' %}" class="nav-link text-body font-weight-bold px-0">
+                    {% else %}
+                        <a href="{% url 'password_change' %}" class="nav-link text-body font-weight-bold px-0">
+                    {% endif %}
+                    <span class="d-sm-inline d-none me-3">Thay đổi mật khẩu</span>
+                    </a>
+                </li>
+
+                <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
+                    <a href="javascript:;" class="nav-link text-body p-0" id="iconNavbarSidenav">
+                        <div class="sidenav-toggler-inner">
+                            <i class="sidenav-toggler-line"></i>
+                            <i class="sidenav-toggler-line"></i>
+                            <i class="sidenav-toggler-line"></i>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+

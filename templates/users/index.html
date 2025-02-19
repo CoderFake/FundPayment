@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Đóng quỹ BU2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="{{ FAVICON_URL }}">
+    <link rel="stylesheet" type="text/css"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/toast.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/index.css' %}">
+</head>
+<body>
+<div class="container" onclick="onclick">
+    <ul class="notifications"></ul>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-dismissible d-none" role="alert">
+                <div class="message-tag">{{ message.tags }}</div>
+                <div class="message">{{ message }}</div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="top"></div>
+    <div class="bottom"></div>
+    <form id="payment-form" class="center" method="post" action="{% url 'home' %}">
+        {% csrf_token %}
+        <h2>ĐÓNG QUỸ BU2</h2>
+        <select name="username" id="username" class="form-control" required>
+            <option value="">Chọn tên</option>
+            <option value="anonymous">Thành viên ngoài {{ BUSINESS_UNIT }}</option>
+            {% for account in accounts %}
+                <option value="{{ account.username }}">{{ account.name }}</option>
+            {% endfor %}
+        </select>
+        <a href="" class="cta">
+            <span>TIẾP TỤC</span>
+            <svg width="13px" height="10px" viewBox="0 0 13 10">
+                <path d="M1,5 L11,5"></path>
+                <polyline points="8 1 12 5 8 9"></polyline>
+            </svg>
+        </a>
+        <h2>&nbsp;</h2>
+    </form>
+</div>
+<script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'js/toast.js' %}"></script>
+<script>
+    $(document).ready(function () {
+        $('.cta').on('click', function (e) {
+            e.preventDefault();
+            if ($('#username').val()) {
+                $('#payment-form').submit();
+            } else {
+                createToast('error', 'Vui lòng chọn tên!');
+            }
+        });
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        $('.alert-dismissible').each(function () {
+            createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
+            $(this).remove();
+        });
+    })
+</script>
+</body>
+</html>

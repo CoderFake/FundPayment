@@ -1,0 +1,233 @@
+{% extends 'layouts/base-fullscreen.html' %}
+{% load i18n static admin_soft %}
+{% block title %}THANH TOÁN{% endblock %}
+{% block content %}
+
+    {% include 'includes/navigation-fullscreen.html' %}
+
+    <main class="main-content mt-3 mt-md-7">
+        <section>
+            <div class="page-header min-vh-75">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-xl-4 col-lg-5 col-md-6 d-flex flex-column">
+                            <div class="card card-plain mt-8">
+                                <div class="card-header pb-0 text-left bg-transparent">
+                                    <h3 class="font-weight-bolder text-info text-gradient">
+                                        THANH TOÁN
+                                    </h3>
+                                    <p class="mb-0"> {{ SLOGAN }}
+                                    </p>
+                                    {% if months|length == 0 %}
+                                        <p class="mb-0 text-info"> Đã đóng đủ quỹ 12 tháng! </p>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <form role="form" method="post" action="{% url 'payment' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order_id }}" readonly>
+                                        <input type="hidden" name="username" value="{{ username }}" readonly>
+                                        {% if username != "anonymous" %}
+                                            <label for="type">Loại hình thanh toán</label>
+                                            <div class="mb-3">
+                                                <select class="form-select" name="type" id="type">
+                                                    {% for type in types %}
+                                                        <option value="{{ type.value }}">{{ type.label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            {% if months|length == 0 and types|length == 1 %}
+                                                <label for="month">Số tiền</label>
+                                                <div class="mb-3">
+                                                    <div class="row">
+                                                        <div class="form-group d-none">
+                                                            <input type="hidden" class="form-control" name="month" id="month">
+                                                        </div>
+                                                        <div class="form-group price-group col-12">
+                                                            <input class="form-control price-display bg-white" placeholder="Nhập số tiền" name="price" required>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <label class="price-label" for="price">Số tháng</label>
+                                                <div class="row">
+                                                    <div class="form-group col-3">
+                                                        <select class="form-select" name="month" id="month">
+                                                            {% for month in months %}
+                                                                <option value="{{ month }}">{{ month }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group price-group col-9">
+                                                        <input class="form-control price-display bg-white"
+                                                               value="{{ per_month_price }}" name="price" id="price" readonly
+                                                               required>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                            <div class="form-group desc d-none">
+                                                <label for="description">Mô tả</label>
+                                                <input class="form-control" type="text" name="description" id="description" placeholder="Nội dung" value="">
+                                            </div>
+{#                                            <div class="form-check form-switch">#}
+{#                                                <input class="form-check-input" type="checkbox" name="send_order"#}
+{#                                                       id="send-order">#}
+{#                                                <label class="form-check-label" for="send-order">Nhận hoá đơn</label>#}
+{#                                            </div>#}
+                                        {% else %}
+                                            <input type="hidden" name="type" value="donate">
+                                            <div class="mb-3">
+                                                <div class="form-group">
+                                                    <label for="name">Tên</label>
+                                                    <input class="form-control price-display bg-white" name="name" placeholder="Nhập tên (tối đa 10 ký tự)"
+                                                           id="name" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="price">Số tiền</label>
+                                                    <input class="form-control price-display bg-white" name="price"
+                                                           id="price"
+                                                           placeholder="Nhập số tiền" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="description">Mô tả</label>
+                                                    <input class="form-control" type="text" name="description" id="description" placeholder="Nội dung" value="">
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-group">
+                                            <p class="text-danger font-italic">Vui lòng chờ chuyển hướng khi hoàn thành giao dịch!</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <button type="submit" class="btn bg-gradient-info w-100 mt-4 mb-0">Thanh
+                                                toán
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="oblique user position-absolute top-0 h-100 d-md-block d-none me-n8">
+                                <div class="oblique-image bg-cover position-absolute fixed-top ms-auto h-100 z-index-0 ms-n6"
+                                     style="background-image:url('{{ LOGO_URL }}')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+
+{% endblock content %}
+
+{% block extrascript %}
+   <script>
+       $(document).ready(function () {
+           {% if username != "anonymous" %}
+               let priceDisplay = $('.price-display');
+               let month = $('#month');
+               let description = $('#description');
+               let descGroup = description.closest('.form-group');
+               let basePrice = parseInt(priceDisplay.val().replace(/[^0-9]/g, ''));
+               let priceGroup = $('.price-group');
+
+               $('#type').on('change', function () {
+                   if ($(this).val() === 'donate') {
+                       $('.price-label').text('Số tiền');
+                       priceDisplay.prop('readonly', false);
+                       priceDisplay.val('');
+
+                       month.parent().slideUp(300, function () {
+                           priceGroup.animate({
+                               'width': '100%'
+                           }, 300);
+                       });
+                       priceDisplay.attr('placeholder', 'Nhập số tiền');
+
+                       descGroup.slideDown(300, function() {
+                           descGroup.removeClass('d-none');
+                           description.animate({
+                               'opacity': 1
+                           }, 300);
+                       });
+
+                   } else {
+                       $('.price-label').text('Số tháng');
+                       priceGroup.animate({
+                           'width': '75%'
+                       }, 300, function () {
+                           month.parent().slideDown(300);
+                       });
+                       priceDisplay.prop('readonly', true);
+                       priceDisplay.val("{{ per_month_price }}");
+                       month.prop('disabled', false);
+                       month.trigger('change');
+
+                       description.animate({
+                           'opacity': 0
+                       }, 300, function() {
+                           descGroup.slideUp(300, function() {
+                               descGroup.addClass('d-none');
+                           });
+                       });
+                   }
+               });
+
+               month.on('change', function () {
+                   if ($('#type').val() !== 'donate') {
+                       let months = parseInt($(this).val());
+                       let total = basePrice * months;
+                       priceDisplay.val(total.toLocaleString('vi-VN') + ' VNĐ');
+                   }
+               });
+
+               priceDisplay.on('input', function (e) {
+                   let start = this.selectionStart;
+                   let value = this.value.replace(/[^0-9]/g, '');
+
+                   if (e.inputType === 'deleteContentBackward') {
+                       value = value.slice(0, -1);
+                   }
+
+                   if (value.length > 8) {
+                       value = value.slice(0, 8);
+                   }
+
+                   let formatted = value ? parseInt(value || 0).toLocaleString('vi-VN') + ' VNĐ' : '';
+                   this.value = formatted;
+
+                   let newPos = formatted.length - 4;
+                   this.setSelectionRange(newPos, newPos);
+               });
+
+               if($('#type').val() !== 'donate') {
+                   descGroup.addClass('d-none');
+                   description.css('opacity', 0);
+               }
+
+           {% else %}
+               $('#price').on('input', function (e) {
+                   let start = this.selectionStart;
+                   let value = this.value.replace(/[^0-9]/g, '');
+
+                   if (e.inputType === 'deleteContentBackward') {
+                       value = value.slice(0, -1);
+                   }
+
+                   if (value.length > 8) {
+                       value = value.slice(0, 8);
+                   }
+
+                   let formatted = value ? parseInt(value || 0).toLocaleString('vi-VN') + ' VNĐ' : '';
+                   this.value = formatted;
+
+                   let newPos = formatted.length - 4;
+                   this.setSelectionRange(newPos, newPos);
+               });
+
+           {% endif %}
+       });
+   </script>
+{% endblock %}

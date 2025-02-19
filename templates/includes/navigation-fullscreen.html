@@ -1,0 +1,44 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg blur blur-rounded top-0 z-index-3 shadow position-absolute my-3 py-2 start-0 end-0 mx-4">
+    <div class="container-fluid pe-0">
+        <a class="navbar-brand font-weight-bolder ms-lg-0 ms-3 " href="{% url 'home' %}">
+            Quay lại
+        </a>
+        <button class="navbar-toggler shadow-none ms-2" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navigation" aria-controls="navigation" aria-expanded="false"
+                aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon mt-2">
+            <span class="navbar-toggler-bar bar1"></span>
+            <span class="navbar-toggler-bar bar2"></span>
+            <span class="navbar-toggler-bar bar3"></span>
+          </span>
+        </button>
+        <div class="collapse navbar-collapse" id="navigation">
+            <ul class="navbar-nav d-flex align-items-center w-100">
+
+                <div class="justify-content-lg-center d-flex flex-grow-1 flex-lg-row flex-column">
+                    <li class="nav-item justify-content-lg-center">
+                        <a class="nav-link d-flex align-items-center me-2" aria-current="page" href="{% url 'transaction' %}?username=all&type=all">
+                            <i class="fa fa-chart-pie opacity-6 me-1"></i>
+                            Lịch sử giao dịch
+                        </a>
+                    </li>
+{#                    <li class="nav-item justify-content-lg-center">#}
+{#                        <a class="nav-link d-flex align-items-center me-2" aria-current="page" href="/">#}
+{#                            <i class="fa fa-undo opacity-6 me-1"></i>#}
+{#                            Hoàn trả tiền#}
+{#                        </a>#}
+{#                        <input type="checkbox" class="d-none" id="theme-switch"/>#}
+{#                    </li>#}
+                </div>
+
+                <li class="nav-item ms-lg-auto align-items-center">
+                    {% now "Y" as current_year %}
+                    <a href="{% url 'payment_history' %}?year={{ current_year }}"
+                       class="btn btn-sm btn-round mb-0 me-1 bg-gradient-dark">Danh sách đóng quỹ</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<!-- End Navbar -->
