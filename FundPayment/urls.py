@@ -14,9 +14,11 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-# urls.py
+from django.conf import settings
+from django.views.static import serve
+from django.conf.urls.static import static
 from adminapp.admin import admin_site
-from django.urls import path, include
+from django.urls import path, include, re_path
 from .caches import config_manager
 
 
@@ -27,6 +29,13 @@ def get_admin_path():
    return "admin/"
 
 urlpatterns = [
+   path(get_admin_path(), include("adminapp.urls")),
+
    path(get_admin_path(), admin_site.urls),
    path("", include("payment.urls")),
+
+   re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
