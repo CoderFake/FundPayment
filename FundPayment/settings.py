@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django_crontab",
     "rest_framework",
     "adminapp",
     "payment",
@@ -133,6 +134,13 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 
 USE_TZ = True
+
+CRONJOBS = [
+   ('0 17 * * *', 'payment.cron_job.check_pending_payments.Command.handle',
+    f'>> {BASE_DIR}/payment/cron_job/log.log 2>&1')
+]
+
+CRONTAB_COMMAND_PREFIX = 'DJANGO_SETTINGS_MODULE=FundPayment.settings'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

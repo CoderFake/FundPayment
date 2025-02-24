@@ -19,5 +19,11 @@ python create_superuser_and_site.py
 echo "Creating users ..."
 python manage.py shell < import_data.py
 
+echo "Setting up cron jobs..."
+service cron start
+python manage.py crontab remove
+python manage.py crontab add
+python manage.py crontab show
+
 echo "Starting Gunicorn server..."
 gunicorn FundPayment.wsgi:application --workers 3 --bind 0.0.0.0:8000
