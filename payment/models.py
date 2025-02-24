@@ -15,6 +15,11 @@ class PaymentType(models.TextChoices):
 
 
 class Payment(models.Model):
+
+    def payment_image_path(instance, filename):
+        ext = filename.split('.')[-1]
+        return f'payments/{instance.order_id}.{ext}'
+
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     order_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Mã đơn hàng")
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="payments", null=True, blank=True)
@@ -22,6 +27,7 @@ class Payment(models.Model):
     amount = models.IntegerField(verbose_name="Số tiền")
     description = models.TextField(verbose_name="Mô tả")
     status = models.BooleanField(default=False, verbose_name="Trạng thái")
+    image = models.ImageField(upload_to='payments/', null=True, blank=True, verbose_name="Hình ảnh")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
 
     class Meta:
