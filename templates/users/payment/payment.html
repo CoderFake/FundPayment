@@ -18,7 +18,7 @@
                                     </h3>
                                     <p class="mb-0"> {{ SLOGAN }}
                                     </p>
-                                    {% if months|length == 0 %}
+                                    {% if months|length == 0 and username != "anonymous" %}
                                         <p class="mb-0 text-info"> Đã đóng đủ quỹ 12 tháng! </p>
                                     {% endif %}
                                 </div>
