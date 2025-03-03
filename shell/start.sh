@@ -21,9 +21,19 @@ python manage.py shell < import_data.py
 
 echo "Setting up cron jobs..."
 service cron start
-python manage.py crontab remove
+crontab -r || true
 python manage.py crontab add
 python manage.py crontab show
 
 echo "Starting Gunicorn server..."
-gunicorn FundPayment.wsgi:application --workers 3 --bind 0.0.0.0:8000
+gunicorn FundPayment.wsgi:application \
+    --workers 3 \
+    --bind 0.0.0.0:8000 \
+    --timeout 120 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --log-level debug \
+    --access-logfile - \
+    --error-logfile - \
+    --capture-output
