@@ -4,6 +4,7 @@ from payment.cron_job.payment_checker import PaymentChecker
 from payment.payos import payOS
 import logging
 import traceback
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -12,9 +13,12 @@ class Command(BaseCommand):
     help = 'Check and update pending payments status at midnight'
 
     def handle(self, *args, **kwargs):
-        current_time = timezone.localtime()
-        logger.info(f"{'='*50}")
-        logger.info(f"Starting check_pending_payments job at {current_time}")
+        vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+        current_time = timezone.now().astimezone(vietnam_tz)
+
+        logger.info(f"{'=' * 50}")
+        logger.info(
+            f"Starting check_pending_payments job at {current_time.strftime('%Y-%m-%d %H:%M:%S')} (Vietnam time)")
 
         try:
             logger.info("Initializing PaymentChecker...")
@@ -23,7 +27,7 @@ class Command(BaseCommand):
             logger.info("Processing pending payments...")
             processed_count = checker.check_pending_payments()
 
-            success_msg = f'Successfully processed {processed_count} pending payments at {current_time}'
+            success_msg = f'Successfully processed {processed_count} pending payments at {current_time.strftime("%Y-%m-%d %H:%M:%S")}'
             logger.info(success_msg)
             self.stdout.write(self.style.SUCCESS(success_msg))
 
@@ -34,5 +38,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(error_msg))
 
         finally:
-            logger.info(f"Finished check_pending_payments job at {timezone.localtime()}")
-            logger.info(f"{'='*50}")
+            end_time = timezone.now().astimezone(vietnam_tz)
+            logger.info(
+                f"Finished check_pending_payments job at {end_time.strftime('%Y-%m-%d %H:%M:%S')} (Vietnam time)")
+            logger.info(f"{'=' * 50}")

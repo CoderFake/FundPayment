@@ -136,11 +136,15 @@ USE_I18N = True
 USE_TZ = True
 
 CRONJOBS = [
-   ('0 17 * * *', 'payment.cron_job.check_pending_payments.Command.handle',
+   ('0 17 * * *', 'payment.management.commands.check_pending_payments.Command.handle',
     f'>> {BASE_DIR}/payment/cron_job/log.log 2>&1')
 ]
 
-CRONTAB_COMMAND_PREFIX = 'DJANGO_SETTINGS_MODULE=FundPayment.settings'
+# Đảm bảo sử dụng múi giờ Việt Nam khi chạy cron
+CRONTAB_COMMAND_PREFIX = 'DJANGO_SETTINGS_MODULE=FundPayment.settings TZ=Asia/Ho_Chi_Minh'
+
+# Cấu hình này đảm bảo chạy cron với đúng môi trường Django
+CRONTAB_COMMAND_PREFIX = 'DJANGO_SETTINGS_MODULE=FundPayment.settings TZ=Asia/Ho_Chi_Minh'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

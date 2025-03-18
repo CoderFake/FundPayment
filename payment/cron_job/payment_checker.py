@@ -4,12 +4,16 @@ from payment.models import Payment, Type
 from adminapp.models import Config
 from payment.utils import PaymentProcessor
 import logging
+import pytz
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
 
 class PaymentChecker:
     def __init__(self, payos_service):
         self.payos = payos_service
+        self.vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')
 
     def _get_or_create_config(self):
         config = Config.objects.first()
@@ -23,6 +27,9 @@ class PaymentChecker:
 
     def process_pending_payment(self, payment):
         try:
+            current_time = timezone.now().astimezone(self.vietnam_tz)
+            logger.info(f"Processing payment {payment.order_id} at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
             payment_info = self.payos.getPaymentLinkInformation(orderId=payment.order_id)
 
             if payment_info.status != "PAID":
@@ -35,7 +42,8 @@ class PaymentChecker:
                     return True
 
                 if int(payment_info.amount) != payment.amount:
-                    logger.error(f"Amount mismatch for order {payment.order_id}: expected {payment.amount}, got {payment_info.amount}")
+                    logger.error(
+                        f"Amount mismatch for order {payment.order_id}: expected {payment.amount}, got {payment_info.amount}")
                     return False
 
                 payment.status = True
@@ -58,6 +66,9 @@ class PaymentChecker:
             return False
 
     def check_pending_payments(self):
+        current_time = timezone.now().astimezone(self.vietnam_tz)
+        logger.info(f"Checking pending payments at {current_time.strftime('%Y-%m-%d %H:%M:%S')} (Vietnam time)")
+
         pending_payments = Payment.objects.filter(status=False)
         logger.info(f"Found {pending_payments.count()} pending payments to check")
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "Installing Gunicorn..."
-pip install gunicorn==23.0.0
+pip install gunicorn==23.0.0 pytz==2025.1
 
 echo "Running migrations..."
 python manage.py makemigrations
@@ -20,6 +20,17 @@ echo "Creating users ..."
 python manage.py shell < import_data.py
 
 echo "Setting up cron jobs..."
+
+echo "Setting timezone to Asia/Ho_Chi_Minh"
+echo "TZ=Asia/Ho_Chi_Minh" > /etc/environment
+ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
+echo "Asia/Ho_Chi_Minh" > /etc/timezone
+
+mkdir -p /home/FundPayment/payment/cron_job
+touch /home/FundPayment/payment/cron_job/log.log
+chmod 666 /home/FundPayment/payment/cron_job/log.log
+
+service cron stop
 service cron start
 crontab -r || true
 python manage.py crontab add

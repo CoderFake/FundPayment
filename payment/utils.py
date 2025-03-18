@@ -9,6 +9,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from django.conf import settings
+from django.contrib import messages
+from django.db import transaction
+from django.shortcuts import redirect
+from django.utils import timezone
+from adminapp.models import Config
+from payment.models import Fund, Payment, Type
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PaymentProcessor:
     def __init__(self, request, order_id, payos_service, path='home'):
@@ -23,7 +34,7 @@ class PaymentProcessor:
 
         for i in range(months_can_pay):
             target_month = start_month + i
-            actual_year = (target_month - 1) // 12
+            actual_year = (target_month - 1) // 12 + timezone.now().year
             actual_month = ((target_month - 1) % 12) + 1
 
             funds_to_create.append(Fund(
@@ -41,11 +52,23 @@ class PaymentProcessor:
             start_month = latest_fund.year * 12 + latest_fund.month
             return start_month + 1
 
-        if payment.account and payment.account.created_at:
-            return payment.account.created_at.year * 12 + payment.account.created_at.month
-
         current_date = timezone.now()
-        return current_date.year * 12 + 1
+        current_month_value = current_date.year * 12 + current_date.month
+        current_day = current_date.day
+
+        if payment.account and payment.account.created_at:
+            if current_day <= 15:
+                logger.info(
+                    f"Tài khoản mới đóng quỹ trước ngày 15, bắt đầu từ tháng hiện tại: {current_date.month}/{current_date.year}")
+                return current_month_value
+            else:
+                next_month_value = current_month_value + 1
+                next_month = (current_date.month % 12) + 1
+                next_year = current_date.year + (1 if current_date.month == 12 else 0)
+                logger.info(f"Tài khoản mới đóng quỹ sau ngày 15, bắt đầu từ tháng sau: {next_month}/{next_year}")
+                return next_month_value
+
+        return current_month_value
 
     def _get_or_create_config(self):
         config = Config.objects.first()
