@@ -17,14 +17,19 @@ class PaymentProcessor:
         self.order_id = order_id
         self.path = path
 
-    def _calculate_fund_periods(self, payment, config, start_month):
+    def _calculate_fund_periods(self, payment, config, start_month_value):
         months_can_pay = int(payment.amount // config.per_month_price)
         funds_to_create = []
 
+        start_year = (start_month_value - 1) // 12
+        start_month = ((start_month_value - 1) % 12) + 1
+
         for i in range(months_can_pay):
-            target_month = start_month + i
-            actual_year = (target_month - 1) // 12 + timezone.now().year
-            actual_month = ((target_month - 1) % 12) + 1
+            current_month = start_month + i
+
+            years_to_add = (current_month - 1) // 12
+            actual_year = start_year + years_to_add
+            actual_month = ((current_month - 1) % 12) + 1
 
             funds_to_create.append(Fund(
                 year=actual_year,
@@ -38,16 +43,18 @@ class PaymentProcessor:
 
     def _get_start_month(self, payment, latest_fund):
         current_date = timezone.now()
+
         current_month_value = current_date.year * 12 + current_date.month
 
         if latest_fund:
+
             latest_month_value = latest_fund.year * 12 + latest_fund.month
             next_month_value = latest_month_value + 1
+
             next_month = (latest_fund.month % 12) + 1
             next_year = latest_fund.year + (1 if latest_fund.month == 12 else 0)
             logger.info(f"Người dùng cũ tiếp tục đóng quỹ từ tháng: {next_month}/{next_year}")
             return next_month_value
-
 
         current_day = current_date.day
         if payment.account and payment.account.created_at:
@@ -56,6 +63,7 @@ class PaymentProcessor:
                     f"Tài khoản mới đóng quỹ trước ngày 15, bắt đầu từ tháng hiện tại: {current_date.month}/{current_date.year}")
                 return current_month_value
             else:
+
                 next_month_value = current_month_value + 1
                 next_month = (current_date.month % 12) + 1
                 next_year = current_date.year + (1 if current_date.month == 12 else 0)
@@ -79,7 +87,8 @@ class PaymentProcessor:
 
         if months_can_pay <= 0:
             logger.error(f"Invalid months_can_pay for order {self.order_id}: {months_can_pay}")
-            messages.error(self.request, "Số tiền thanh toán không đủ cho 1 tháng!")
+            if self.request:
+                messages.error(self.request, "Số tiền thanh toán không đủ cho 1 tháng!")
             return False
 
         latest_fund = Fund.objects.filter(
@@ -87,11 +96,29 @@ class PaymentProcessor:
             status=True
         ).order_by('-year', '-month').first()
 
-        start_month = self._get_start_month(payment, latest_fund)
-        funds_to_create = self._calculate_fund_periods(payment, config, start_month)
+        start_month_value = self._get_start_month(payment, latest_fund)
+        funds_to_create = self._calculate_fund_periods(payment, config, start_month_value)
 
-        Fund.objects.bulk_create(funds_to_create)
-        logger.info(f"Created {len(funds_to_create)} fund records for order {self.order_id}")
+        funds_to_create_filtered = []
+        for fund in funds_to_create:
+            existing = Fund.objects.filter(
+                year=fund.year,
+                month=fund.month,
+                account=payment.account
+            ).exists()
+
+            if not existing:
+                funds_to_create_filtered.append(fund)
+            else:
+                logger.info(
+                    f"Bỏ qua bản ghi quỹ đã tồn tại: tháng {fund.month}/{fund.year} cho tài khoản {payment.account.username}")
+
+        if funds_to_create_filtered:
+            Fund.objects.bulk_create(funds_to_create_filtered)
+            logger.info(f"Created {len(funds_to_create_filtered)} fund records for order {self.order_id}")
+        else:
+            logger.info(f"No new fund records needed for order {self.order_id}")
+
         return True
 
     def process_payment(self):
