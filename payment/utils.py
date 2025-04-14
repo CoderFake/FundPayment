@@ -9,17 +9,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from django.conf import settings
-from django.contrib import messages
-from django.db import transaction
-from django.shortcuts import redirect
-from django.utils import timezone
-from adminapp.models import Config
-from payment.models import Fund, Payment, Type
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 class PaymentProcessor:
     def __init__(self, request, order_id, payos_service, path='home'):
@@ -48,14 +37,19 @@ class PaymentProcessor:
         return funds_to_create
 
     def _get_start_month(self, payment, latest_fund):
-        if latest_fund:
-            start_month = latest_fund.year * 12 + latest_fund.month
-            return start_month + 1
-
         current_date = timezone.now()
         current_month_value = current_date.year * 12 + current_date.month
-        current_day = current_date.day
 
+        if latest_fund:
+            latest_month_value = latest_fund.year * 12 + latest_fund.month
+            next_month_value = latest_month_value + 1
+            next_month = (latest_fund.month % 12) + 1
+            next_year = latest_fund.year + (1 if latest_fund.month == 12 else 0)
+            logger.info(f"Người dùng cũ tiếp tục đóng quỹ từ tháng: {next_month}/{next_year}")
+            return next_month_value
+
+
+        current_day = current_date.day
         if payment.account and payment.account.created_at:
             if current_day <= 15:
                 logger.info(

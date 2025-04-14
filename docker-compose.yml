@@ -17,8 +17,8 @@ services:
       - "${WEB_EXPORT}:8000"
     command: >
       sh -c "./shell/start.sh"
-    depends_on:
-      - db
+#    depends_on:
+#      - db
     volumes:
       - "./:/home/FundPayment"
       - "./staticfiles:/home/FundPayment/staticfiles"

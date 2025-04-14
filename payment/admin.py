@@ -8,7 +8,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 from adminapp.models import Config
-from payment.models import PaymentType, Payment
+from payment.models import PaymentType, Payment, Fund
 from payment.utils import PaymentProcessor
 from payment.payos import payOS
 from django.utils.html import format_html
@@ -68,53 +68,67 @@ class PaymentAdmin(admin.ModelAdmin):
                             if os.path.isfile(old_image_path):
                                 os.remove(old_image_path)
 
-                    if old_payment.status != obj.status and old_payment.status == False and old_payment != PaymentType.ACTIVITIES_PAYMENT:
-                        try:
-                            PaymentProcessor(request, obj.order_id, payOS,
-                                             path=reverse('admin:payment_payment_changelist')).process_payment()
-                        except Exception as e:
-                            raise ValidationError(f"Lỗi khi lưu thanh toán: {str(e)}")
+                    if (old_payment.status != obj.status and
+                            obj.status is True and
+                            old_payment.status is False and
+                            obj.type == PaymentType.MONTHLY_FUND.value):
 
-                try:
-                    obj.amount = self.clean_amount(obj.amount)
-                except ValueError:
-                    raise ValidationError("Số tiền không hợp lệ")
+                        existing_funds = Fund.objects.filter(
+                            description__contains=f"Đóng quỹ tháng",
+                            account=obj.account,
+                            created_at__gte=obj.created_at
+                        ).count()
 
-                if not change:
-                    obj.order_id = int(str(timezone.now().strftime("%H%M%S%f")) + str(random.randint(10, 999)))
+                        if existing_funds == 0:
+                            try:
+                                config = Config.objects.select_for_update().first()
+                                processor = PaymentProcessor(request, obj.order_id, payOS)
+                                processor._process_monthly_fund(obj, config)
+                            except Exception as e:
+                                raise ValidationError(f"Lỗi khi tạo bản ghi quỹ: {str(e)}")
 
-                super().save_model(request, obj, form, change)
+                    try:
+                        obj.amount = self.clean_amount(obj.amount)
+                    except ValueError:
+                        raise ValidationError("Số tiền không hợp lệ")
 
-                if obj.image:
-                    file_ext = obj.image.name.split('.')[-1]
-                    new_name = f'payments/{obj.order_id}.{file_ext}'
-                    old_path = obj.image.path
-                    new_path = os.path.join(settings.MEDIA_ROOT, new_name)
-                    if old_path != new_path:
-                        os.makedirs(os.path.dirname(new_path), exist_ok=True)
-                        os.rename(old_path, new_path)
-                        obj.image.name = new_name
-                        obj.save()
+                    if not change:
+                        obj.order_id = int(str(timezone.now().strftime("%H%M%S%f")) + str(random.randint(10, 999)))
 
-                config = Config.objects.select_for_update().first()
-                if config:
-                    if change:
-                        if old_type == PaymentType.ACTIVITIES_PAYMENT:
-                            config.total += old_amount
+                    super().save_model(request, obj, form, change)
+
+                    # Xử lý cập nhật ảnh
+                    if obj.image:
+                        file_ext = obj.image.name.split('.')[-1]
+                        new_name = f'payments/{obj.order_id}.{file_ext}'
+                        old_path = obj.image.path
+                        new_path = os.path.join(settings.MEDIA_ROOT, new_name)
+                        if old_path != new_path:
+                            os.makedirs(os.path.dirname(new_path), exist_ok=True)
+                            os.rename(old_path, new_path)
+                            obj.image.name = new_name
+                            obj.save()
+
+                    # Cập nhật tổng quỹ
+                    config = Config.objects.select_for_update().first()
+                    if config:
+                        if change:
+                            if old_type == PaymentType.ACTIVITIES_PAYMENT:
+                                config.total += old_amount
+                            else:
+                                config.total -= old_amount
+
+                            if obj.type == PaymentType.ACTIVITIES_PAYMENT:
+                                config.total -= obj.amount
+                            else:
+                                config.total += obj.amount
                         else:
-                            config.total -= old_amount
+                            if obj.type == PaymentType.ACTIVITIES_PAYMENT:
+                                config.total -= obj.amount
+                            else:
+                                config.total += obj.amount
 
-                        if obj.type == PaymentType.ACTIVITIES_PAYMENT:
-                            config.total -= obj.amount
-                        else:
-                            config.total += obj.amount
-                    else:
-                        if obj.type == PaymentType.ACTIVITIES_PAYMENT:
-                            config.total -= obj.amount
-                        else:
-                            config.total += obj.amount
-
-                    config.save()
+                        config.save()
 
         except Exception as e:
             raise ValidationError(f"Lỗi khi lưu thanh toán: {str(e)}")
