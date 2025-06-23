@@ -6,19 +6,37 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django import forms
 from adminapp.models import Config
 from payment.models import PaymentType, Payment, Fund
 from payment.utils import PaymentProcessor
 from payment.payos import payOS
 from django.utils.html import format_html
 
+
+class PaymentAdminForm(forms.ModelForm):
+    created_at = forms.DateTimeField(
+        label="Ngày tạo",
+        widget=forms.DateTimeInput(attrs={
+            'type': 'datetime-local'
+        }),
+        input_formats=['%Y-%m-%dT%H:%M'],
+        required=False
+    )
+
+    class Meta:
+        model = Payment
+        fields = '__all__'
+
+
 class PaymentAdmin(admin.ModelAdmin):
+    form = PaymentAdminForm
     list_display = ('order_id', 'get_account_name', 'type', 'amount', 'status', 'created_at', 'get_image')
     list_filter = ('type', 'status')
     search_fields = ('order_id', 'account__name', 'description')
-    readonly_fields = ('id', 'created_at', 'get_image_preview')
+    readonly_fields = ('id', 'get_image_preview')
     list_per_page = 20
-    fields = ('account', 'type', 'amount', 'status', 'description', 'image', 'get_image_preview')
+    fields = ('account', 'type', 'amount', 'status', 'description', 'image', 'created_at', 'get_image_preview')
 
     def get_image(self, obj):
         if obj.image:
@@ -34,6 +52,7 @@ class PaymentAdmin(admin.ModelAdmin):
         if obj.image:
             return format_html('<img src="{}" width="300" height="300" style="object-fit: contain;" />', obj.image.url)
         return "Không có hình ảnh xem trước"
+
     get_image_preview.short_description = 'Xem trước hình ảnh'
 
     def get_account_name(self, obj):
