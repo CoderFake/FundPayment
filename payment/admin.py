@@ -21,12 +21,18 @@ class PaymentAdminForm(forms.ModelForm):
             'type': 'datetime-local'
         }),
         input_formats=['%Y-%m-%dT%H:%M'],
-        required=False
+        required=True
     )
 
     class Meta:
         model = Payment
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['created_at'].initial = self.instance.created_at.strftime(
+                '%Y-%m-%dT%H:%M') if self.instance.created_at else None
 
 
 class PaymentAdmin(admin.ModelAdmin):
@@ -82,6 +88,9 @@ class PaymentAdmin(admin.ModelAdmin):
 
                 if not change and not obj.order_id:
                     obj.order_id = int(str(timezone.now().strftime("%H%M%S%f")) + str(random.randint(10, 999)))
+
+                if not change and not obj.created_at:
+                    obj.created_at = timezone.now()
 
                 if change:
                     old_payment = Payment.objects.get(id=obj.id)
