@@ -44,10 +44,7 @@ class PaymentProcessor:
     def _get_start_month(self, payment, latest_fund):
         current_date = timezone.now()
 
-        current_month_value = current_date.year * 12 + current_date.month
-
         if latest_fund:
-
             latest_month_value = latest_fund.year * 12 + latest_fund.month
             next_month_value = latest_month_value + 1
 
@@ -56,21 +53,39 @@ class PaymentProcessor:
             logger.info(f"Người dùng cũ tiếp tục đóng quỹ từ tháng: {next_month}/{next_year}")
             return next_month_value
 
-        current_day = current_date.day
         if payment.account and payment.account.created_at:
-            if current_day <= 15:
+            join_date = payment.account.created_at
+            join_day = join_date.day
+
+            if join_day <= 15:
+                start_month_value = join_date.year * 12 + join_date.month
                 logger.info(
-                    f"Tài khoản mới đóng quỹ trước ngày 15, bắt đầu từ tháng hiện tại: {current_date.month}/{current_date.year}")
-                return current_month_value
+                    f"Tài khoản {payment.account.username} gia nhập ngày {join_day}/{join_date.month}/{join_date.year} (trước ngày 15)")
+                logger.info(f"  -> Bắt đầu đóng quỹ từ tháng: {join_date.month}/{join_date.year}")
             else:
+                next_month = (join_date.month % 12) + 1
+                next_year = join_date.year + (1 if join_date.month == 12 else 0)
+                start_month_value = next_year * 12 + next_month
+                logger.info(
+                    f"Tài khoản {payment.account.username} gia nhập ngày {join_day}/{join_date.month}/{join_date.year} (sau ngày 15)")
+                logger.info(f"  -> Bắt đầu đóng quỹ từ tháng: {next_month}/{next_year}")
 
-                next_month_value = current_month_value + 1
-                next_month = (current_date.month % 12) + 1
-                next_year = current_date.year + (1 if current_date.month == 12 else 0)
-                logger.info(f"Tài khoản mới đóng quỹ sau ngày 15, bắt đầu từ tháng sau: {next_month}/{next_year}")
-                return next_month_value
+            return start_month_value
 
-        return current_month_value
+        current_month_value = current_date.year * 12 + current_date.month
+        current_day = current_date.day
+
+        if current_day <= 15:
+            logger.info(
+                f"Không có thông tin tài khoản, thanh toán trước ngày 15, bắt đầu từ tháng hiện tại: {current_date.month}/{current_date.year}")
+            return current_month_value
+        else:
+            next_month_value = current_month_value + 1
+            next_month = (current_date.month % 12) + 1
+            next_year = current_date.year + (1 if current_date.month == 12 else 0)
+            logger.info(
+                f"Không có thông tin tài khoản, thanh toán sau ngày 15, bắt đầu từ tháng sau: {next_month}/{next_year}")
+            return next_month_value
 
     def _get_or_create_config(self):
         config = Config.objects.first()
